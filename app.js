@@ -77,8 +77,7 @@ function updateAuthUI() {
       statusSpan.textContent = "Non connecté";
       statusSpan.classList.remove("admin-status--on");
     }
-    // on laisse le loginCard tel qu'il est (caché par défaut,
-    // ouvert uniquement si l'utilisateur clique sur le bouton)
+    // le loginCard reste caché tant que l'user ne clique pas sur le bouton
   }
 }
 
@@ -353,7 +352,8 @@ async function joinEvent(eventId) {
   // vider les champs
   nameEl.value = "";
   if (emailEl) emailEl.value = "";
-  if (phoneEl) phoneEl.value = "";
+  // on ne vide pas le téléphone si tu veux que ce soit plus rapide sur mobile
+  // if (phoneEl) phoneEl.value = "";
 
   // mettre à jour le compteur + rafraîchir la liste (pour admin)
   loadEvents();
@@ -401,8 +401,50 @@ async function handleCreateEvent() {
   msg.textContent = "Événement créé.";
   msg.style.color = "lightgreen";
 
-  // reload
+  // On laisse Realtime s'occuper de recharger pour tout le monde,
+  // mais pour le créateur on peut forcer un reload immédiat :
   loadEvents();
+}
+
+// ------------------ REALTIME SUPABASE ------------------
+// >>> AJOUT ICI <<<
+
+let eventsChannel = null;
+
+function setupRealtime() {
+  if (!sb || !sb.channel) {
+    console.warn("Realtime Supabase indisponible (sb.channel manquant)");
+    return;
+  }
+
+  // si déjà abonné, on ne refait pas
+  if (eventsChannel) {
+    return;
+  }
+
+  eventsChannel = sb
+    .channel("agenda-realtime")
+    // changements sur la table events (INSERT / UPDATE / DELETE)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "events" },
+      (payload) => {
+        console.log("Realtime events:", payload.eventType, payload.new || payload.old);
+        loadEvents();
+      }
+    )
+    // nouveaux participants : on met à jour le compteur + liste admin
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "event_participants" },
+      (payload) => {
+        console.log("Realtime participant:", payload.new);
+        loadEvents();
+      }
+    )
+    .subscribe((status) => {
+      console.log("Etat canal realtime:", status);
+    });
 }
 
 // ------------------ INIT ------------------
@@ -412,6 +454,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   // init auth + UI
   await initAuthAndUI();
+
+  // active le temps réel
+  setupRealtime(); // <<< AJOUT
 
   // chargement initial des événements
   await loadEvents();
@@ -467,7 +512,7 @@ window.joinEvent = joinEvent;
 let deferredPrompt = null;
 
 window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault(); 
+  e.preventDefault();
   deferredPrompt = e;
 
   const installBtn = document.getElementById("installPWA");
