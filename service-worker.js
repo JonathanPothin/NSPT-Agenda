@@ -8,7 +8,7 @@ self.addEventListener("install", (event) => {
         "./app.js",
         "./supabase.js",
         "./manifest.json",
-        "./favicon.png",
+        "./favicon-32X32.png",
         "./icon-192.png",
         "./icon-512.png"
       ]);
