@@ -24,6 +24,22 @@ function buildConfirmationMessage(name, ev) {
   );
 }
 
+// Comparateurs de dates pour trier les événements
+function compareEventsAsc(a, b) {
+  const da = a.event_date || "9999-12-31";
+  const db = b.event_date || "9999-12-31";
+  if (da !== db) return da < db ? -1 : 1;
+
+  const ta = a.event_time || "00:00";
+  const tb = b.event_time || "00:00";
+  if (ta === tb) return 0;
+  return ta < tb ? -1 : 1;
+}
+
+function compareEventsDesc(a, b) {
+  return -compareEventsAsc(a, b);
+}
+
 // Appelle la Edge Function `notify` pour envoyer mail/SMS
 async function callNotify(params) {
   const { email, phone, subject, message } = params;
@@ -33,9 +49,9 @@ async function callNotify(params) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify({ email, phone, subject, message })
+      body: JSON.stringify({ email, phone, subject, message }),
     });
 
     let data = {};
@@ -117,7 +133,7 @@ async function handleAdminLogin() {
 
   const { data, error } = await sb.auth.signInWithPassword({
     email,
-    password
+    password,
   });
 
   if (error) {
@@ -160,6 +176,56 @@ async function handleAdminLogout() {
   isAdmin = false;
   updateAuthUI();
   loadEvents();
+}
+
+// ------------------ RENDU D'UN ÉVÉNEMENT ------------------
+
+function renderEventCard(ev, participantsByEvent) {
+  EVENTS_CACHE[ev.id] = ev;
+  const count = ev.participant_count || 0;
+
+  // bloc admin : liste des participants
+  let adminBlock = "";
+  if (isAdmin) {
+    const list = (participantsByEvent && participantsByEvent[ev.id]) || [];
+    if (list.length > 0) {
+      adminBlock += `<div class="admin-participants">
+        <div class="admin-participants-title">Participants (${list.length})</div>
+        <ul>`;
+      list.forEach((p) => {
+        const name = p.name || "Sans nom";
+        const contact = p.contact ? ` – <span>${p.contact}</span>` : "";
+        adminBlock += `<li>${name}${contact}</li>`;
+      });
+      adminBlock += `</ul></div>`;
+    } else {
+      adminBlock += `<div class="admin-participants admin-participants-empty">
+        Aucun participant pour le moment.
+      </div>`;
+    }
+  }
+
+  return `
+    <div class="event">
+      <div class="event-title">${ev.title}</div>
+      <div class="event-meta">
+        📅 <strong>${ev.event_date || ""}</strong>
+        ${ev.event_time ? " — " + ev.event_time : ""}
+        ${ev.location ? "<br>📍 " + ev.location : ""}
+        <br>👥 ${count} inscrit${count > 1 ? "s" : ""}
+      </div>
+
+      ${adminBlock}
+
+      <div class="join-card">
+        <input type="text" id="name-${ev.id}" placeholder="Nom">
+        <input type="email" id="email-${ev.id}" placeholder="Email (optionnel)">
+        <input type="tel" id="phone-${ev.id}" placeholder="Téléphone (optionnel)">
+        <button class="btn btn-full" onclick="joinEvent('${ev.id}')">Je participe</button>
+        <p id="msg-${ev.id}"></p>
+      </div>
+    </div>
+  `;
 }
 
 // ------------------ CHARGEMENT DES ÉVÉNEMENTS ------------------
@@ -212,55 +278,50 @@ async function loadEvents() {
     }
   }
 
-  let html = "";
+  // --- séparation événements à venir / passés ---
+
+  // today au format YYYY-MM-DD
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const upcoming = [];
+  const past = [];
 
   events.forEach((ev) => {
-    EVENTS_CACHE[ev.id] = ev;
-    const count = ev.participant_count || 0;
-
-    // bloc admin : liste des participants
-    let adminBlock = "";
-    if (isAdmin) {
-      const list = participantsByEvent[ev.id] || [];
-      if (list.length > 0) {
-        adminBlock += `<div class="admin-participants">
-          <div class="admin-participants-title">Participants (${list.length})</div>
-          <ul>`;
-        list.forEach((p) => {
-          const name = p.name || "Sans nom";
-          const contact = p.contact ? ` – <span>${p.contact}</span>` : "";
-          adminBlock += `<li>${name}${contact}</li>`;
-        });
-        adminBlock += `</ul></div>`;
-      } else {
-        adminBlock += `<div class="admin-participants admin-participants-empty">
-          Aucun participant pour le moment.
-        </div>`;
-      }
+    if (ev.event_date && ev.event_date < todayStr) {
+      past.push(ev);
+    } else {
+      upcoming.push(ev);
     }
-
-    html += `
-      <div class="event">
-        <div class="event-title">${ev.title}</div>
-        <div class="event-meta">
-          📅 <strong>${ev.event_date || ""}</strong>
-          ${ev.event_time ? " — " + ev.event_time : ""}
-          ${ev.location ? "<br>📍 " + ev.location : ""}
-          <br>👥 ${count} inscrit${count > 1 ? "s" : ""}
-        </div>
-
-        ${adminBlock}
-
-        <div class="join-card">
-          <input type="text" id="name-${ev.id}" placeholder="Nom">
-          <input type="email" id="email-${ev.id}" placeholder="Email (optionnel)">
-          <input type="tel" id="phone-${ev.id}" placeholder="Téléphone (optionnel)">
-          <button class="btn btn-full" onclick="joinEvent('${ev.id}')">Je participe</button>
-          <p id="msg-${ev.id}"></p>
-        </div>
-      </div>
-    `;
   });
+
+  // tri : à venir du plus proche au plus lointain, passés du plus récent au plus ancien
+  upcoming.sort(compareEventsAsc);
+  past.sort(compareEventsDesc);
+
+  let html = "";
+
+  // Événements à venir
+  if (upcoming.length > 0) {
+    html += `<h2 class="events-section-title">Événements à venir</h2>`;
+    upcoming.forEach((ev) => {
+      html += renderEventCard(ev, participantsByEvent);
+    });
+  } else {
+    html += `<p>Aucun événement à venir.</p>`;
+  }
+
+  // Événements passés (dans un bloc repliable)
+  if (past.length > 0) {
+    html += `
+      <details class="events-past">
+        <summary>Événements passés (${past.length})</summary>
+        <div class="events-past-list">
+    `;
+    past.forEach((ev) => {
+      html += renderEventCard(ev, participantsByEvent);
+    });
+    html += `</div></details>`;
+  }
 
   container.innerHTML = html;
 }
@@ -299,7 +360,7 @@ async function joinEvent(eventId) {
     event_id: eventId,
     name: name,
     contact: contact || null,
-    contact_type: contact_type
+    contact_type: contact_type,
   });
 
   if (error) {
@@ -341,7 +402,7 @@ async function joinEvent(eventId) {
           email: email || null,
           phone: phone || null,
           subject: subject,
-          message: message
+          message: message,
         });
       }
     }
@@ -352,10 +413,9 @@ async function joinEvent(eventId) {
   // vider les champs
   nameEl.value = "";
   if (emailEl) emailEl.value = "";
-  // on ne vide pas le téléphone si tu veux que ce soit plus rapide sur mobile
-  // if (phoneEl) phoneEl.value = "";
+  // on peut laisser le téléphone pour gagner du temps si tu veux
 
-  // mettre à jour le compteur + rafraîchir la liste (pour admin)
+  // le realtime mettra à jour, mais pour l'utilisateur courant on recharge
   loadEvents();
 }
 
@@ -388,7 +448,7 @@ async function handleCreateEvent() {
     event_date: date,
     event_time: time || null,
     location: location || null,
-    description: desc || null
+    description: desc || null,
   });
 
   if (error) {
@@ -401,13 +461,11 @@ async function handleCreateEvent() {
   msg.textContent = "Événement créé.";
   msg.style.color = "lightgreen";
 
-  // On laisse Realtime s'occuper de recharger pour tout le monde,
-  // mais pour le créateur on peut forcer un reload immédiat :
+  // Realtime s'occupe de pousser aux autres, on force un reload pour le créateur
   loadEvents();
 }
 
 // ------------------ REALTIME SUPABASE ------------------
-// >>> AJOUT ICI <<<
 
 let eventsChannel = null;
 
@@ -417,14 +475,10 @@ function setupRealtime() {
     return;
   }
 
-  // si déjà abonné, on ne refait pas
-  if (eventsChannel) {
-    return;
-  }
+  if (eventsChannel) return; // déjà abonné
 
   eventsChannel = sb
     .channel("agenda-realtime")
-    // changements sur la table events (INSERT / UPDATE / DELETE)
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "events" },
@@ -433,7 +487,6 @@ function setupRealtime() {
         loadEvents();
       }
     )
-    // nouveaux participants : on met à jour le compteur + liste admin
     .on(
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "event_participants" },
@@ -456,7 +509,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   await initAuthAndUI();
 
   // active le temps réel
-  setupRealtime(); // <<< AJOUT
+  setupRealtime();
 
   // chargement initial des événements
   await loadEvents();
@@ -495,8 +548,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     toggleBtn.addEventListener("click", function (e) {
       e.preventDefault();
       if (isAdmin) {
-        // si déjà connecté, pas besoin d'ouvrir le login
-        return;
+        return; // si déjà connecté, on ne montre pas le bloc login
       }
       const currentDisplay = loginCard.style.display || "none";
       loginCard.style.display = currentDisplay === "none" ? "block" : "none";
