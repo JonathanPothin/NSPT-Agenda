@@ -1,0 +1,22 @@
+{
+  "name": "Agenda NSPT Tassin",
+  "short_name": "Agenda NSPT",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f2e8",
+  "theme_color": "#1e40af",
+  "description": "Inscriptions aux événements de la campagne NSPT.",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
