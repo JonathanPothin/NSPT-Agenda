@@ -18,9 +18,9 @@ function buildConfirmationMessage(name, ev) {
   return (
     `Bonjour ${name},\n\n` +
     `Inscription à : "${ev.title}".\n` +
-    (date ? `📅Date : ${date}${time ? " à " + time : ""}\n` : "") +
-    (location ? `📍Lieu : ${location}\n` : "") +
-    `L'équipe NSPT`
+    (date ? `📅Date: ${date}${time ? " à " + time : ""}\n` : "") +
+    (location ? `📍Lieu: ${location}\n` : "") +
+    \n`L'équipe NSPT`
   );
 }
 
