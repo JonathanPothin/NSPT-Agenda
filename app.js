@@ -20,7 +20,7 @@ function buildConfirmationMessage(name, ev) {
     `Inscription à : "${ev.title}".\n` +
     (date ? `📅Date: ${date}${time ? " à " + time : ""}\n` : "") +
     (location ? `📍Lieu: ${location}\n` : "") +
-    \n`L'équipe NSPT`
+    `\nL'équipe NSPT`
   );
 }
 
