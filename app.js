@@ -15,12 +15,19 @@ function buildConfirmationMessage(name, ev) {
   const time = ev.event_time || "";
   const location = ev.location || "";
 
+  let lineDate = "";
+  if (date) {
+    lineDate = `Date : ${date}${time ? " à " + time : ""}`;
+  }
+
+  const lineLieu = location ? `Lieu : ${location}` : "";
+
   return (
     `Bonjour ${name},\n\n` +
-    `Merci pour votre inscription à l'événement : "${ev.title}".\n` +
-    (date ? `📅 Date : ${date}${time ? " à " + time : ""}\n` : "") +
-    (location ? `📍 Lieu : ${location}\n` : "") +
-    `\nÀ bientôt,\nL'équipe NSPT Tassin`
+    `Inscription à : "${ev.title}".\n\n` +
+    (lineDate ? lineDate + "\n" : "") +
+    (lineLieu ? lineLieu + "\n\n" : "\n") +
+    `L'équipe NSPT`
   );
 }
 
