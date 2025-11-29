@@ -380,7 +380,7 @@ async function joinEvent(eventId) {
     if (contact_type && (email || phone)) {
       let ev = EVENTS_CACHE[eventId];
 
-       sécurité : si pas dans le cache, on recharge depuis la BDD
+     //  sécurité : si pas dans le cache, on recharge depuis la BDD
       if (!ev) {
         const { data } = await sb
           .from("events")
