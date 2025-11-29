@@ -228,7 +228,7 @@ function renderEventCard(ev, participantsByEvent) {
   `;
 }
 
- ------------------ CHARGEMENT DES ÉVÉNEMENTS ------------------
+ //------------------ CHARGEMENT DES ÉVÉNEMENTS ------------------
 
 async function loadEvents() {
   const container = document.getElementById("events");
