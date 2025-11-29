@@ -280,7 +280,7 @@ async function loadEvents() {
 
 //   --- séparation événements à venir / passés ---
 
-   today au format YYYY-MM-DD
+ //  today au format YYYY-MM-DD
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const upcoming = [];
@@ -294,13 +294,13 @@ async function loadEvents() {
     }
   });
 
-   tri : à venir du plus proche au plus lointain, passés du plus récent au plus ancien
+   //tri : à venir du plus proche au plus lointain, passés du plus récent au plus ancien
   upcoming.sort(compareEventsAsc);
   past.sort(compareEventsDesc);
 
   let html = "";
 
-   Événements à venir
+   //Événements à venir
   if (upcoming.length > 0) {
     html += `<h2 class="events-section-title">Événements à venir</h2>`;
     upcoming.forEach((ev) => {
@@ -310,7 +310,7 @@ async function loadEvents() {
     html += `<p>Aucun événement à venir.</p>`;
   }
 
-   Événements passés (dans un bloc repliable)
+   //Événements passés (dans un bloc repliable)
   if (past.length > 0) {
     html += `
       <details class="events-past">
