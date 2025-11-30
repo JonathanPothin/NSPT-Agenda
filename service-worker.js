@@ -1,7 +1,7 @@
 // service-worker.js
 
 // Change la version à chaque mise à jour du site
-const CACHE_NAME = "agenda-cache-v5";
+const CACHE_NAME = "agenda-cache-v5"
 
 const ASSETS = [
   "./",
@@ -20,7 +20,7 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
-  self.skipWaiting(); // ⚡ Nouveau SW prêt immédiatement
+  self.skipWaiting(); // Nouveau SW prêt immédiatement
 });
 
 // ACTIVATE → supprime anciens caches + clients.claim()
@@ -35,7 +35,7 @@ self.addEventListener("activate", (event) => {
     )
   );
 
-  self.clients.claim(); // ⚡ Le nouveau SW prend le contrôle
+  self.clients.claim(); // Le nouveau SW prend le contrôle
 });
 
 // FETCH
