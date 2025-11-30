@@ -220,8 +220,8 @@ function renderEventCard(ev, participantsByEvent) {
       <div class="join-card">
         <input type="text" id="name-${ev.id}" placeholder="Nom">
         <p class="contact-hint"> Choisissez un moyen de contact : E-mail ou SMS. </p>
-        <input type="email" id="email-${ev.id}" placeholder="Saisissez votre Email (ou téléphone au choix)">
-        <input type="tel" id="phone-${ev.id}" placeholder="Saisissez votre Téléphone (ou Email au choix)">
+        <input type="email" id="email-${ev.id}" placeholder="Saisissez votre Email">
+        <input type="tel" id="phone-${ev.id}" placeholder="Saisissez votre Téléphone">
         <button class="btn btn-full" onclick="joinEvent('${ev.id}')">Je participe</button>
         <p id="msg-${ev.id}"></p>
       </div>
